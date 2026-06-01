@@ -1,0 +1,21 @@
+# Compiler output
+out/
+cache/
+
+# Dependencies
+lib/
+
+# Environment
+.env
+.env.*
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+broadcast/
