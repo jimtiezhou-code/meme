@@ -8,7 +8,9 @@ import "../src/MemeToken.sol";
 /// @notice Complete test script: deploy + mint + verify
 /// @dev Usage:
 ///      1. Set PRIVATE_KEY: export PRIVATE_KEY=0x...
-///      2. Run: forge script script/MemeTest.s.sol --rpc-url <RPC> --broadcast
+///      2. Set UNISWAP_ROUTER (optional, defaults to mainnet):
+///         export UNISWAP_ROUTER=0x...
+///      3. Run: forge script script/MemeTest.s.sol --rpc-url <RPC> --broadcast
 contract MemeTest is Script {
     // Test params
     string constant SYMBOL = "DOGE";
@@ -20,21 +22,26 @@ contract MemeTest is Script {
         uint256 deployerKey = vm.envUint("PRIVATE_KEY");
         address deployer = vm.addr(deployerKey);
 
-        // Optional: set feeCollector, defaults to deployer
         address feeCollector = vm.envOr("FEE_COLLECTOR", deployer);
+        address uniswapRouter = vm.envOr(
+            "UNISWAP_ROUTER",
+            0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D
+        );
 
         console.log("=== Meme Platform Test Script ===");
-        console.log("Deployer:    ", deployer);
-        console.log("FeeCollector:", feeCollector);
+        console.log("Deployer:       ", deployer);
+        console.log("FeeCollector:   ", feeCollector);
+        console.log("Uniswap Router: ", uniswapRouter);
         console.log("");
 
         vm.startBroadcast(deployerKey);
 
         // 1. Deploy MemeFactory
         console.log("1. Deploy MemeFactory...");
-        MemeFactory factory = new MemeFactory(feeCollector);
+        MemeFactory factory = new MemeFactory(feeCollector, uniswapRouter);
         console.log("   Factory addr:  ", address(factory));
         console.log("   Implementation:", factory.implementation());
+        console.log("   WETH:          ", factory.WETH());
         console.log("");
 
         // 2. Deploy Meme Token
@@ -48,12 +55,14 @@ contract MemeTest is Script {
         console.log("   Token addr:  ", tokenAddr);
         console.log("");
 
-        // 3. Mint Tokens
+        // 3. Mint Tokens (5 % fee → Uniswap liquidity, 95 % → deployer)
         console.log("3. Mint Tokens (mintMeme)...");
         console.log("   Payment:     ", PRICE);
+        console.log("   5%% -> LP:       ", PRICE * 500 / 10_000);
+        console.log("   95%% -> deployer: ", PRICE - PRICE * 500 / 10_000);
 
         factory.mintMeme{value: PRICE}(tokenAddr);
-        console.log("   Mint success!");
+        console.log("   Mint success! (liquidity added to Uniswap V2)");
         console.log("");
 
         vm.stopBroadcast();

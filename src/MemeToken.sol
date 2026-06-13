@@ -87,4 +87,24 @@ contract MemeToken is ERC20 {
         minted += mintAmount;
         return mintAmount;
     }
+
+    /// @notice Mints an arbitrary amount of tokens for liquidity provision.
+    /// @dev    Only callable by the factory. Tokens are minted to the factory
+    ///         so it can add them as Uniswap V2 liquidity.
+    ///         Returns 0 instead of reverting when the supply is exhausted.
+    /// @param  to     Recipient of the minted tokens (typically the factory).
+    /// @param  amount Desired token amount to mint.
+    /// @return mintedAmount  Number of tokens actually minted (capped by remaining, may be 0).
+    function mintForLiquidity(address to, uint256 amount)
+        external
+        onlyFactory
+        returns (uint256 mintedAmount)
+    {
+        uint256 left = remaining();
+        if (left == 0) return 0;
+
+        mintedAmount = amount < left ? amount : left;
+        _mint(to, mintedAmount);
+        minted += mintedAmount;
+    }
 }
